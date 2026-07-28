@@ -80,12 +80,6 @@ public struct GaugeState: Codable, Equatable, Sendable {
         return (fiveHour.livePercent(now: seconds), sevenDay.livePercent(now: seconds))
     }
 
-    /// The window closest to its limit — what the colour should reflect.
-    public func worstPercent(now: Date = Date()) -> Double? {
-        let current = live(now: now)
-        return [current.fiveHour, current.sevenDay].compactMap { $0 }.max()
-    }
-
     /// Combines this observation with what is already on disk, one window at a
     /// time. A session that has not called the API yet reports nothing and must
     /// not blank numbers another session published; a session left open for hours
