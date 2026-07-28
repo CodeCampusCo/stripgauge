@@ -1,5 +1,2 @@
-# Every pull request requests a review from the owner automatically.
-# Requiring that review is a separate switch — see CLAUDE.md, "If a contributor
-# ever gets write access". Turning it on today would block the sole owner from
-# merging their own work.
+# Requests a review from the owner on every pull request.
 * @parintorns

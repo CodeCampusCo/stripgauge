@@ -17,17 +17,6 @@ layout is a hard budget of roughly six characters per row, not a stylistic choic
 The statusline mode must always exit 0 — a failure there breaks the user's status line in every
 Claude Code session.
 
-## If a contributor ever gets write access
-
-`main` is protected by a ruleset with no bypass actors: everyone, owner included, goes through a
-pull request that passes CI, and nobody can force-push or delete the branch. Required approvals is
-0, which is what lets a solo owner merge their own work.
-
-The moment someone else has write access, that setting also lets them merge their own pull requests
-unreviewed. Close that by enabling `require_code_owner_review` on the ruleset — `.github/CODEOWNERS`
-is already in place. Do not enable it before then: GitHub does not allow authors to approve their
-own pull requests, so with a single code owner it blocks every one of the owner's own merges.
-
 ## Verifying
 
 `swift test` covers everything except the Touch Bar itself, which can only be checked by eye:
