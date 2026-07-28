@@ -6,6 +6,11 @@ import Foundation
 public struct StatuslineInput: Decodable, Sendable {
     public struct Window: Decodable, Sendable {
         public let usedPercentage: Double?
+
+        /// Epoch seconds when this window rolls over. Identifies *which* window
+        /// a percentage belongs to, which is how observations from different
+        /// sessions can be compared.
+        public let resetsAt: Int?
     }
 
     public struct RateLimits: Decodable, Sendable {
@@ -19,6 +24,7 @@ public struct StatuslineInput: Decodable, Sendable {
 
     public let rateLimits: RateLimits?
     public let contextWindow: ContextWindow?
+    public let sessionId: String?
 
     public static func decode(_ data: Data) throws -> StatuslineInput {
         let decoder = JSONDecoder()
@@ -32,9 +38,13 @@ public struct StatuslineInput: Decodable, Sendable {
 
     public func state(at now: Date = Date()) -> GaugeState {
         GaugeState(
-            fiveHourPercent: rateLimits?.fiveHour?.usedPercentage,
-            sevenDayPercent: rateLimits?.sevenDay?.usedPercentage,
+            fiveHour: Self.reading(rateLimits?.fiveHour),
+            sevenDay: Self.reading(rateLimits?.sevenDay),
             updatedAt: now
         )
+    }
+
+    private static func reading(_ window: Window?) -> WindowReading {
+        WindowReading(percent: window?.usedPercentage, resetsAt: window?.resetsAt)
     }
 }

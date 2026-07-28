@@ -1,22 +1,67 @@
 import Foundation
 
-/// What the statusline hook hands to the Touch Bar process.
+/// One rate-limit window as some session last observed it.
 ///
-/// Both percentages are optional because Claude Code only reports rate limits
-/// for Claude.ai subscribers, only after the first API response of a session,
-/// and each window can be absent independently of the other.
+/// `resetsAt` is what makes two observations comparable. A percentage on its own
+/// is meaningless across sessions: each session reports the numbers from *its*
+/// last API response, so an idle session keeps republishing a percentage for a
+/// window that has already rolled over.
+public struct WindowReading: Codable, Equatable, Sendable {
+    public var percent: Double?
+    public var resetsAt: Int?
+
+    public init(percent: Double? = nil, resetsAt: Int? = nil) {
+        self.percent = percent
+        self.resetsAt = resetsAt
+    }
+
+    public static let unknown = WindowReading()
+
+    public var isEmpty: Bool { percent == nil }
+
+    /// True once the window this was measured in has ended. Such a reading says
+    /// nothing about the window we are in now.
+    public func hasExpired(now: Int) -> Bool {
+        guard let resetsAt else { return false }
+        return resetsAt <= now
+    }
+
+    /// The percentage to show, or nil when the reading is missing or belongs to
+    /// a window that has already ended.
+    public func livePercent(now: Int) -> Double? {
+        hasExpired(now: now) ? nil : percent
+    }
+
+    /// Picks between an incoming observation and the stored one.
+    ///
+    /// Expired readings lose outright. Otherwise the later window wins, because
+    /// it is the one we are in; within the same window the larger percentage
+    /// wins, because usage only accumulates until the window resets.
+    public static func preferred(_ incoming: WindowReading, over stored: WindowReading, now: Int) -> WindowReading {
+        let candidates = [incoming, stored].filter { !$0.isEmpty && !$0.hasExpired(now: now) }
+        guard let first = candidates.first else { return .unknown }
+        guard candidates.count > 1 else { return first }
+
+        if (incoming.resetsAt ?? 0) != (stored.resetsAt ?? 0) {
+            return (incoming.resetsAt ?? 0) > (stored.resetsAt ?? 0) ? incoming : stored
+        }
+        return (incoming.percent ?? 0) >= (stored.percent ?? 0) ? incoming : stored
+    }
+}
+
+/// What the statusline hook hands to the Touch Bar process.
 public struct GaugeState: Codable, Equatable, Sendable {
-    public var fiveHourPercent: Double?
-    public var sevenDayPercent: Double?
+    public var fiveHour: WindowReading
+    public var sevenDay: WindowReading
 
     /// Whole epoch seconds. JSON integers round-trip exactly on every Foundation
     /// version, which a floating-point timestamp does not, and a staleness window
     /// measured in tens of seconds has no use for the fraction.
     public var updatedAt: Int
 
-    public init(fiveHourPercent: Double?, sevenDayPercent: Double?, updatedAt: Date) {
-        self.fiveHourPercent = fiveHourPercent
-        self.sevenDayPercent = sevenDayPercent
+    public init(fiveHour: WindowReading, sevenDay: WindowReading, updatedAt: Date) {
+        self.fiveHour = fiveHour
+        self.sevenDay = sevenDay
         self.updatedAt = Int(updatedAt.timeIntervalSince1970)
     }
 
@@ -29,28 +74,29 @@ public struct GaugeState: Codable, Equatable, Sendable {
         Int(now.timeIntervalSince1970) - updatedAt > Self.staleAfter
     }
 
-    /// The window closest to its limit — what the colour should reflect.
-    public var worstPercent: Double? {
-        [fiveHourPercent, sevenDayPercent].compacted().max()
+    /// The percentages worth showing right now.
+    public func live(now: Date = Date()) -> (fiveHour: Double?, sevenDay: Double?) {
+        let seconds = Int(now.timeIntervalSince1970)
+        return (fiveHour.livePercent(now: seconds), sevenDay.livePercent(now: seconds))
     }
 
-    /// Fills gaps from what is already on disk, so a session that has not yet
-    /// made an API call — and therefore reports no rate limits — refreshes the
-    /// timestamp without blanking numbers another session already published.
-    /// A stale previous state contributes nothing: those numbers are no longer
-    /// trustworthy.
+    /// The window closest to its limit — what the colour should reflect.
+    public func worstPercent(now: Date = Date()) -> Double? {
+        let current = live(now: now)
+        return [current.fiveHour, current.sevenDay].compactMap { $0 }.max()
+    }
+
+    /// Combines this observation with what is already on disk, one window at a
+    /// time. A session that has not called the API yet reports nothing and must
+    /// not blank numbers another session published; a session left open for hours
+    /// reports a dead window and must not overwrite the live one.
     public func merged(over previous: GaugeState?, now: Date = Date()) -> GaugeState {
         guard let previous, !previous.isStale(now: now) else { return self }
+        let seconds = Int(now.timeIntervalSince1970)
         var merged = self
-        merged.fiveHourPercent = fiveHourPercent ?? previous.fiveHourPercent
-        merged.sevenDayPercent = sevenDayPercent ?? previous.sevenDayPercent
+        merged.fiveHour = .preferred(fiveHour, over: previous.fiveHour, now: seconds)
+        merged.sevenDay = .preferred(sevenDay, over: previous.sevenDay, now: seconds)
         return merged
-    }
-}
-
-extension Sequence {
-    fileprivate func compacted<T>() -> [T] where Element == T? {
-        compactMap { $0 }
     }
 }
 
@@ -73,8 +119,6 @@ public enum GaugeStore {
     }
 
     /// Written atomically so a concurrent reader never sees a half-written file.
-    /// Several Claude Code sessions write here; last writer wins, which is correct
-    /// because these percentages are account-wide and identical across sessions.
     public static func write(_ state: GaugeState) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try encode(state).write(to: file, options: .atomic)

@@ -34,17 +34,31 @@ final class GaugeDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Refresh
 
+    /// `STRIPGAUGE_DEBUG=1` traces every tick. The Touch Bar layer cannot be
+    /// tested, so this is the only way to tell a stalled timer apart from a
+    /// stalled render.
+    private static let debug = ProcessInfo.processInfo.environment["STRIPGAUGE_DEBUG"] == "1"
+
+    private func trace(_ message: String) {
+        guard Self.debug else { return }
+        let now = Date().formatted(date: .omitted, time: .standard)
+        FileHandle.standardError.write(Data("[\(now)] \(message)\n".utf8))
+    }
+
     private func refresh() {
         guard let state = try? GaugeStore.read(), !state.isStale() else {
+            trace("tick — unreadable or stale, hiding")
             setVisible(false)
             return
         }
 
-        let rows = Label.rows(state)
+        let live = state.live()
+        let rows = Label.rows(fiveHour: live.fiveHour, sevenDay: live.sevenDay)
+        trace("tick — file says \(rows.top) / \(rows.bottom), label currently \(top.stringValue) / \(bottom.stringValue)")
         top.stringValue = rows.top
         bottom.stringValue = rows.bottom
 
-        let colour = Self.colour(for: Severity.of(state.worstPercent))
+        let colour = Self.colour(for: Severity.of(state.worstPercent()))
         top.textColor = colour
         bottom.textColor = colour
 

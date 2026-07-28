@@ -22,10 +22,15 @@ Claude Code --via stdin-> stripgauge statusline --atomic write-> ~/Library/Appli
 ```
 
 One binary, two modes. `stripgauge statusline` is what Claude Code invokes on every update; the
-same binary, launched from the app bundle, draws the Control Strip item. Because the numbers are
-account-wide, several concurrent sessions writing the same file is not a conflict — and a session
-that has not made an API call yet contributes no numbers rather than blanking the ones already
-there.
+same binary, launched from the app bundle, draws the Control Strip item.
+
+Every session writes to the same file, and they do not agree. Each reports the numbers from *its
+own* last API response, so a session left open overnight keeps republishing a percentage for a
+five-hour window that ended hours ago — every ten seconds, thanks to `refreshInterval`. Each
+window therefore carries its `resets_at`, and a reading whose window has already ended is
+discarded rather than displayed. Within one window the higher percentage wins, since usage only
+accumulates until the reset, and a session that has not called the API yet contributes nothing
+instead of blanking what another session published.
 
 Dependencies: none. Foundation and AppKit only.
 

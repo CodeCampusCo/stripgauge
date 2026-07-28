@@ -21,8 +21,8 @@ public enum Severity: Sendable, Equatable {
 public enum Label {
     public static let placeholder = "—"
 
-    public static func rows(_ state: GaugeState) -> (top: String, bottom: String) {
-        (row("5h", state.fiveHourPercent), row("7d", state.sevenDayPercent))
+    public static func rows(fiveHour: Double?, sevenDay: Double?) -> (top: String, bottom: String) {
+        (row("5h", fiveHour), row("7d", sevenDay))
     }
 
     private static func row(_ prefix: String, _ percent: Double?) -> String {
@@ -31,13 +31,10 @@ public enum Label {
     }
 
     /// One line for the terminal status line, where width is not scarce.
-    public static func statusline(_ state: GaugeState, contextPercent: Double?) -> String {
-        var parts = [
-            "5h " + percent(state.fiveHourPercent),
-            "7d " + percent(state.sevenDayPercent),
-        ]
-        if let contextPercent {
-            parts.append("ctx " + percent(contextPercent))
+    public static func statusline(fiveHour: Double?, sevenDay: Double?, context: Double?) -> String {
+        var parts = ["5h " + percent(fiveHour), "7d " + percent(sevenDay)]
+        if let context {
+            parts.append("ctx " + percent(context))
         }
         return parts.joined(separator: " · ")
     }

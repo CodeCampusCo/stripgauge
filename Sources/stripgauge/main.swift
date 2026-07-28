@@ -23,12 +23,13 @@ func runStatusline() {
     let data = FileHandle.standardInput.readDataToEndOfFile()
 
     guard let input = try? StatuslineInput.decode(data) else {
-        let unknown = GaugeState(fiveHourPercent: nil, sevenDayPercent: nil, updatedAt: Date())
-        print(Label.statusline(unknown, contextPercent: nil))
+        print(Label.statusline(fiveHour: nil, sevenDay: nil, context: nil))
         return
     }
 
     let state = input.state().merged(over: try? GaugeStore.read())
     try? GaugeStore.write(state)
-    print(Label.statusline(state, contextPercent: input.contextPercent))
+
+    let live = state.live()
+    print(Label.statusline(fiveHour: live.fiveHour, sevenDay: live.sevenDay, context: input.contextPercent))
 }
