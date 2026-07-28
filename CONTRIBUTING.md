@@ -12,8 +12,8 @@ Especially welcome:
 - handling for a statusline payload shape that breaks parsing
 - anything that removes code without removing behaviour
 
-Before building something larger, open an issue first — see `docs/proposals/` for the ideas already
-written down and the reasons they are not built yet.
+Before building something larger, open an issue first — `docs/specs/` records what was decided and
+why, including the things deliberately left out.
 
 ## Working on it
 

@@ -6,8 +6,8 @@ body:
     attributes:
       value: |
         The Control Strip slot is about 55 × 30 pt — two rows of roughly six characters — and that
-        is a measured hardware limit, not a style choice. Ideas that need more room generally need
-        the expanded detail bar described in `docs/proposals/`.
+        is a measured hardware limit, not a style choice. Anything needing more room belongs in the
+        expanded bar you get by tapping the gauge.
 
   - type: textarea
     id: problem
@@ -29,4 +29,4 @@ body:
     attributes:
       label: Checked already
       options:
-        - label: I read `docs/proposals/` and this is not already written up there
+        - label: I read `docs/specs/` and this is not already decided against there
