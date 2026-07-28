@@ -59,8 +59,21 @@ import Testing
     let now = Date(timeIntervalSince1970: 1_000_000)
     let fresh = GaugeState(fiveHourPercent: 1, sevenDayPercent: 1, updatedAt: now)
 
-    #expect(!fresh.isStale(now: now.addingTimeInterval(GaugeState.staleAfter - 1)))
-    #expect(fresh.isStale(now: now.addingTimeInterval(GaugeState.staleAfter + 1)))
+    #expect(!fresh.isStale(now: now.addingTimeInterval(TimeInterval(GaugeState.staleAfter - 1))))
+    #expect(fresh.isStale(now: now.addingTimeInterval(TimeInterval(GaugeState.staleAfter + 1))))
+}
+
+@Test func timestampSurvivesJSONExactly() throws {
+    // A floating-point timestamp round-tripped differently on different
+    // Foundation versions: green locally, red on CI. Whole seconds cannot.
+    let state = GaugeState(
+        fiveHourPercent: nil,
+        sevenDayPercent: nil,
+        updatedAt: Date(timeIntervalSince1970: 1_785_228_593.227181)
+    )
+
+    #expect(state.updatedAt == 1_785_228_593)
+    #expect(try GaugeStore.decode(try GaugeStore.encode(state)).updatedAt == state.updatedAt)
 }
 
 // MARK: - Merging across concurrent sessions
@@ -76,7 +89,7 @@ import Testing
 
     #expect(merged.fiveHourPercent == 24)
     #expect(merged.sevenDayPercent == 41)
-    #expect(merged.updatedAt == now)
+    #expect(merged.updatedAt == Int(now.timeIntervalSince1970))
 }
 
 @Test func newerNumbersWin() {
@@ -93,7 +106,7 @@ import Testing
 @Test func staleNumbersAreNotResurrected() {
     let then = Date(timeIntervalSince1970: 1_000_000)
     let ancient = GaugeState(fiveHourPercent: 24, sevenDayPercent: 41, updatedAt: then)
-    let now = then.addingTimeInterval(GaugeState.staleAfter + 1)
+    let now = then.addingTimeInterval(TimeInterval(GaugeState.staleAfter + 1))
     let empty = GaugeState(fiveHourPercent: nil, sevenDayPercent: nil, updatedAt: now)
 
     let merged = empty.merged(over: ancient, now: now)

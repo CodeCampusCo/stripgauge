@@ -8,21 +8,25 @@ import Foundation
 public struct GaugeState: Codable, Equatable, Sendable {
     public var fiveHourPercent: Double?
     public var sevenDayPercent: Double?
-    public var updatedAt: Date
+
+    /// Whole epoch seconds. JSON integers round-trip exactly on every Foundation
+    /// version, which a floating-point timestamp does not, and a staleness window
+    /// measured in tens of seconds has no use for the fraction.
+    public var updatedAt: Int
 
     public init(fiveHourPercent: Double?, sevenDayPercent: Double?, updatedAt: Date) {
         self.fiveHourPercent = fiveHourPercent
         self.sevenDayPercent = sevenDayPercent
-        self.updatedAt = updatedAt
+        self.updatedAt = Int(updatedAt.timeIntervalSince1970)
     }
 
     /// Considered gone once nothing has written for this long. Must stay
     /// comfortably above the statusLine `refreshInterval`, or an idle-but-open
     /// session looks like a closed one.
-    public static let staleAfter: TimeInterval = 30
+    public static let staleAfter = 30
 
     public func isStale(now: Date = Date()) -> Bool {
-        now.timeIntervalSince(updatedAt) > Self.staleAfter
+        Int(now.timeIntervalSince1970) - updatedAt > Self.staleAfter
     }
 
     /// The window closest to its limit — what the colour should reflect.
@@ -37,11 +41,10 @@ public struct GaugeState: Codable, Equatable, Sendable {
     /// trustworthy.
     public func merged(over previous: GaugeState?, now: Date = Date()) -> GaugeState {
         guard let previous, !previous.isStale(now: now) else { return self }
-        return GaugeState(
-            fiveHourPercent: fiveHourPercent ?? previous.fiveHourPercent,
-            sevenDayPercent: sevenDayPercent ?? previous.sevenDayPercent,
-            updatedAt: updatedAt
-        )
+        var merged = self
+        merged.fiveHourPercent = fiveHourPercent ?? previous.fiveHourPercent
+        merged.sevenDayPercent = sevenDayPercent ?? previous.sevenDayPercent
+        return merged
     }
 }
 
@@ -59,19 +62,14 @@ public enum GaugeStore {
 
     public static let file = directory.appending(path: "state.json")
 
-    /// Epoch seconds, not ISO 8601: the staleness check compares sub-second
-    /// timestamps, and ISO 8601 silently truncates the fraction.
     public static func encode(_ state: GaugeState) throws -> Data {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .secondsSince1970
         encoder.outputFormatting = [.sortedKeys]
         return try encoder.encode(state)
     }
 
     public static func decode(_ data: Data) throws -> GaugeState {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .secondsSince1970
-        return try decoder.decode(GaugeState.self, from: data)
+        try JSONDecoder().decode(GaugeState.self, from: data)
     }
 
     /// Written atomically so a concurrent reader never sees a half-written file.
