@@ -1,0 +1,4 @@
+.build/
+StripGauge.app/
+.DS_Store
+.swiftpm/
