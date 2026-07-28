@@ -58,9 +58,10 @@ final class GaugeDelegate: NSObject, NSApplicationDelegate {
         top.stringValue = rows.top
         bottom.stringValue = rows.bottom
 
-        let colour = Self.colour(for: Severity.of(state.worstPercent()))
-        top.textColor = colour
-        bottom.textColor = colour
+        // Each window is coloured on its own reading. A quiet five-hour window
+        // should not look alarming just because the weekly one is filling up.
+        top.textColor = Self.colour(for: Severity.of(live.fiveHour))
+        bottom.textColor = Self.colour(for: Severity.of(live.sevenDay))
 
         setVisible(true)
     }
@@ -102,7 +103,8 @@ final class GaugeDelegate: NSObject, NSApplicationDelegate {
 
     private static func colour(for severity: Severity) -> NSColor {
         switch severity {
-        case .normal: .labelColor
+        case .unknown: .secondaryLabelColor
+        case .normal: .systemGreen
         case .warning: .systemYellow
         case .alert: .systemRed
         }

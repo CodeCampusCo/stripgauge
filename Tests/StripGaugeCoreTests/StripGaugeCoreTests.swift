@@ -32,7 +32,7 @@ private let endedWindow = nowSeconds - 3_600
 
     #expect(state.fiveHour.isEmpty)
     #expect(state.sevenDay.isEmpty)
-    #expect(state.worstPercent(now: noon) == nil)
+    #expect(state.live(now: noon) == (nil, nil))
 }
 
 @Test func toleratesOneWindowMissing() throws {
@@ -199,12 +199,21 @@ func severityThresholds(percent: Double, expected: Severity) {
     #expect(Severity.of(percent) == expected)
 }
 
-@Test func severityIsDrivenByTheWorseWindow() {
+@Test func noReadingIsNotTheSameAsALowReading() {
+    #expect(Severity.of(nil) == .unknown)
+    #expect(Severity.of(0) == .normal)
+}
+
+@Test func eachWindowIsJudgedOnItsOwnReading() {
+    // A quiet five-hour window should not look alarming just because the weekly
+    // one is filling up.
     let state = GaugeState(
         fiveHour: WindowReading(percent: 10, resetsAt: liveWindow),
         sevenDay: WindowReading(percent: 92, resetsAt: liveWindow),
         updatedAt: noon
     )
+    let live = state.live(now: noon)
 
-    #expect(Severity.of(state.worstPercent(now: noon)) == .alert)
+    #expect(Severity.of(live.fiveHour) == .normal)
+    #expect(Severity.of(live.sevenDay) == .alert)
 }

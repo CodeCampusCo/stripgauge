@@ -1,13 +1,18 @@
 import Foundation
 
 /// How close a window is to its limit. Drives the text colour only.
+///
+/// `unknown` is distinct from `normal` on purpose: before a session's first API
+/// response there is no reading at all, and showing that in the same colour as a
+/// comfortable one would read as "plenty left" rather than "no idea yet".
 public enum Severity: Sendable, Equatable {
+    case unknown
     case normal
     case warning
     case alert
 
     public static func of(_ percent: Double?) -> Severity {
-        guard let percent else { return .normal }
+        guard let percent else { return .unknown }
         if percent >= 85 { return .alert }
         if percent >= 60 { return .warning }
         return .normal

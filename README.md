@@ -5,8 +5,10 @@ Claude Code subscription quota on the MacBook Pro Touch Bar.
 ![the gauge in the Control Strip](docs/touchbar.png)
 
 Two rows in the Control Strip: percentage of the 5-hour window used, and percentage of the
-7-day window. The text turns yellow at 60% and red at 85%. It appears while Claude Code is
-running and disappears about half a minute after the last session closes.
+7-day window. Each row is coloured on its own reading — green, yellow from 60%, red from 85%, and
+grey while there is no reading yet — so a quiet five-hour window does not look alarming just
+because the weekly one is filling up. It appears while Claude Code is running and disappears about
+half a minute after the last session closes.
 
 ## How it works
 
