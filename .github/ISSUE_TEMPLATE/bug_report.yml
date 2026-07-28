@@ -1,0 +1,61 @@
+name: Bug report
+description: The gauge is missing, wrong, or stuck
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you see, and what you expected instead.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: symptom
+    attributes:
+      label: Closest symptom
+      options:
+        - Nothing appears in the Control Strip
+        - It appears but shows — instead of numbers
+        - It shows numbers, but they are wrong
+        - It stays visible after Claude Code is closed
+        - It disappears while Claude Code is still running
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "26.5.2"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Mac model
+      description: "`sysctl -n hw.model` — for example MacBookPro17,1"
+    validations:
+      required: true
+
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code version
+      description: "`claude --version`"
+
+  - type: textarea
+    id: state
+    attributes:
+      label: State file
+      description: "Output of `cat ~/Library/Application\\ Support/stripgauge/state.json` — two percentages and a timestamp, nothing sensitive."
+      render: json
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: App output
+      description: Anything printed when you run `StripGauge.app/Contents/MacOS/stripgauge` from a terminal.
+      render: shell

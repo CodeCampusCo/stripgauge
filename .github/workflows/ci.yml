@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Test
+        run: swift test
+
+      # Proves the bundle assembles and ad-hoc signs, which is the part a
+      # plain `swift build` does not cover. The Touch Bar itself cannot be
+      # exercised on a runner.
+      - name: Build app bundle
+        run: ./build.sh

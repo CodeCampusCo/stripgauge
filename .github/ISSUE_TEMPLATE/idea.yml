@@ -1,0 +1,32 @@
+name: Idea
+description: Suggest a change to what the gauge does
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The Control Strip slot is about 55 × 30 pt — two rows of roughly six characters — and that
+        is a measured hardware limit, not a style choice. Ideas that need more room generally need
+        the expanded detail bar described in `docs/proposals/`.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is annoying today
+      description: The problem, before any solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like instead
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Checked already
+      options:
+        - label: I read `docs/proposals/` and this is not already written up there
