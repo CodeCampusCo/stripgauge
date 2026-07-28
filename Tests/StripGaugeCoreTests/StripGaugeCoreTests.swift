@@ -3,7 +3,8 @@ import Testing
 
 @testable import StripGaugeCore
 
-private let noon = Date(timeIntervalSince1970: 1_785_248_000)
+/// Exactly 12:00 UTC, so clock assertions land on whole minutes.
+private let noon = Date(timeIntervalSince1970: 1_785_240_000)
 private let nowSeconds = Int(noon.timeIntervalSince1970)
 private let liveWindow = nowSeconds + 3_600
 private let endedWindow = nowSeconds - 3_600
@@ -185,6 +186,33 @@ private let endedWindow = nowSeconds - 3_600
 @Test func statuslineDropsContextWhenAbsent() {
     #expect(Label.statusline(fiveHour: 24, sevenDay: 41, context: 12) == "5h 24% · 7d 41% · ctx 12%")
     #expect(Label.statusline(fiveHour: 24, sevenDay: 41, context: nil) == "5h 24% · 7d 41%")
+}
+
+@Test func countdownShrinksToTheLargestUsefulUnits() {
+    #expect(Label.remaining(nowSeconds + 45 * 60, now: noon) == "45m")
+    #expect(Label.remaining(nowSeconds + 3_600, now: noon) == "1h 0m")
+    #expect(Label.remaining(nowSeconds + 3 * 3_600 + 41 * 60, now: noon) == "3h 41m")
+    #expect(Label.remaining(nowSeconds + 2 * 86_400 + 3 * 3_600, now: noon) == "2d 3h")
+}
+
+@Test func clockGainsADateOnlyWhenTheTimeAloneWouldBeAmbiguous() {
+    let utc = TimeZone(identifier: "UTC")!
+    let laterToday = nowSeconds + 4 * 3_600 + 27 * 60
+    let inTwoDays = nowSeconds + 2 * 86_400 + 4 * 3_600 + 27 * 60
+
+    #expect(Label.clock(laterToday, now: noon, timeZone: utc) == "16:27")
+
+    // Entirely numeric, so this assertion holds on any machine in any language.
+    // An earlier version used month symbols from a calendar with no locale and
+    // put "Thu 30 M07 21:00" on the Touch Bar.
+    #expect(Label.clock(inTwoDays, now: noon, timeZone: utc) == "2026-07-30 16:27")
+}
+
+@Test func resetTimesAreAbsentWhenThereIsNothingToCountTo() {
+    #expect(Label.remaining(nil, now: noon) == nil)
+    #expect(Label.remaining(nowSeconds - 60, now: noon) == nil)
+    #expect(Label.clock(nil, now: noon) == nil)
+    #expect(Label.clock(nowSeconds - 60, now: noon) == nil)
 }
 
 @Test(arguments: [

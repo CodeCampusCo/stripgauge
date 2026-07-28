@@ -10,6 +10,13 @@ grey while there is no reading yet — so a quiet five-hour window does not look
 because the weekly one is filling up. It appears while Claude Code is running and disappears about
 half a minute after the last session closes.
 
+Tap it for the detail, and tap again — or use the close box — to go back:
+
+![the expanded view](docs/expanded.png)
+
+Each window gets a bar, a countdown, and the time it comes back. The Control Strip stays put
+underneath, so brightness and volume remain reachable while this is open.
+
 ## How it works
 
 Claude Code's `statusLine` hook hands a JSON payload to any command you configure, and that

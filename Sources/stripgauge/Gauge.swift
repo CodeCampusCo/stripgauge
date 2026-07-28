@@ -10,19 +10,24 @@ final class GaugeDelegate: NSObject, NSApplicationDelegate {
     private static let identifier = NSTouchBarItem.Identifier("dev.stripgauge.item")
     private static let pollInterval: TimeInterval = 2
 
-    private let top = GaugeDelegate.makeRow()
-    private let bottom = GaugeDelegate.makeRow()
+    private let button = GaugeDelegate.makeButton()
+    private var rendered = ""
     private var item: NSCustomTouchBarItem?
     private var isVisible = false
     private var timer: Timer?
+
+    private let expanded = ExpandedBar()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard ControlStrip.isAvailable else {
             fail("the Touch Bar private API this depends on is unavailable on this macOS build")
         }
 
+        button.target = self
+        button.action = #selector(toggle)
+
         let item = NSCustomTouchBarItem(identifier: Self.identifier)
-        item.view = makeStack()
+        item.view = button
         self.item = item
         ControlStrip.register(item)
 
@@ -48,21 +53,26 @@ final class GaugeDelegate: NSObject, NSApplicationDelegate {
     private func refresh() {
         guard let state = try? GaugeStore.read(), !state.isStale() else {
             trace("tick — unreadable or stale, hiding")
+            collapse()
             setVisible(false)
             return
         }
 
         let live = state.live()
         let rows = Label.rows(fiveHour: live.fiveHour, sevenDay: live.sevenDay)
-        trace("tick — file says \(rows.top) / \(rows.bottom), label currently \(top.stringValue) / \(bottom.stringValue)")
-        top.stringValue = rows.top
-        bottom.stringValue = rows.bottom
+        trace("tick — file says \(rows.top) / \(rows.bottom), showing \(rendered)")
 
         // Each window is coloured on its own reading. A quiet five-hour window
         // should not look alarming just because the weekly one is filling up.
-        top.textColor = Self.colour(for: Severity.of(live.fiveHour))
-        bottom.textColor = Self.colour(for: Severity.of(live.sevenDay))
+        setTitle(
+            rows,
+            top: Severity.of(live.fiveHour).colour,
+            bottom: Severity.of(live.sevenDay).colour
+        )
 
+        if expanded.touchBar.isVisible {
+            expanded.update(state)
+        }
         setVisible(true)
     }
 
@@ -72,42 +82,65 @@ final class GaugeDelegate: NSObject, NSApplicationDelegate {
         ControlStrip.setVisible(visible, identifier: Self.identifier)
     }
 
+    // MARK: - Expanding
+
+    /// Tapping toggles. The bar's own `isVisible` is the source of truth: the
+    /// close box, and a second tap on the tray item, both dismiss it without
+    /// telling us, so a flag of our own goes stale and every later tap is
+    /// swallowed.
+    @objc private func toggle() {
+        let visible = expanded.touchBar.isVisible
+        trace("tapped — isVisible=\(visible)")
+
+        if visible {
+            ControlStrip.collapse(expanded.touchBar)
+            return
+        }
+
+        guard let state = try? GaugeStore.read(), !state.isStale() else { return }
+        expanded.update(state)
+        ControlStrip.expand(expanded.touchBar, from: Self.identifier)
+    }
+
+    private func collapse() {
+        guard expanded.touchBar.isVisible else { return }
+        ControlStrip.collapse(expanded.touchBar)
+    }
+
     // MARK: - Views
 
-    /// Two rows, sized by their own text. Do not add a width constraint: the
-    /// Control Strip discards it and falls back to a default slot.
-    private func makeStack() -> NSView {
-        let container = NSView()
-        container.addSubview(top)
-        container.addSubview(bottom)
-        NSLayoutConstraint.activate([
-            top.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 6),
-            top.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -6),
-            bottom.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 6),
-            bottom.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -6),
-            top.topAnchor.constraint(equalTo: container.topAnchor, constant: 1),
-            bottom.topAnchor.constraint(equalTo: top.bottomAnchor),
-            bottom.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -1),
-        ])
-        return container
+    /// A button rather than a label, because the Control Strip delivers taps to
+    /// controls and not to gesture recognizers on a plain view. Two rows come
+    /// from an attributed title, which is also what lets each row take its own
+    /// colour.
+    ///
+    /// Do not add a width constraint: the Control Strip discards it and falls
+    /// back to a default slot.
+    private static func makeButton() -> NSButton {
+        let button = NSButton(title: Label.placeholder, target: nil, action: nil)
+        button.isBordered = false
+        button.imagePosition = .noImage
+        button.translatesAutoresizingMaskIntoConstraints = false
+        (button.cell as? NSButtonCell)?.usesSingleLineMode = false
+        (button.cell as? NSButtonCell)?.lineBreakMode = .byClipping
+        return button
     }
 
-    private static func makeRow() -> NSTextField {
-        let field = NSTextField(labelWithString: Label.placeholder)
-        field.font = .monospacedDigitSystemFont(ofSize: 10, weight: .semibold)
-        field.alignment = .center
-        field.lineBreakMode = .byClipping
-        field.translatesAutoresizingMaskIntoConstraints = false
-        return field
-    }
+    private func setTitle(_ rows: (top: String, bottom: String), top: NSColor, bottom: NSColor) {
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
 
-    private static func colour(for severity: Severity) -> NSColor {
-        switch severity {
-        case .unknown: .secondaryLabelColor
-        case .normal: .systemGreen
-        case .warning: .systemYellow
-        case .alert: .systemRed
-        }
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .semibold)
+        let title = NSMutableAttributedString()
+        title.append(NSAttributedString(
+            string: rows.top + "\n",
+            attributes: [.font: font, .foregroundColor: top, .paragraphStyle: style]))
+        title.append(NSAttributedString(
+            string: rows.bottom,
+            attributes: [.font: font, .foregroundColor: bottom, .paragraphStyle: style]))
+
+        button.attributedTitle = title
+        rendered = "\(rows.top) / \(rows.bottom)"
     }
 
     private func fail(_ message: String) -> Never {
