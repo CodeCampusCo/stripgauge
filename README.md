@@ -15,17 +15,10 @@ payload already contains `rate_limits.five_hour.used_percentage` and
 `rate_limits.seven_day.used_percentage` — the same numbers `/usage` reports. So there is nothing
 to scrape and no API to call.
 
-```
-Claude Code ──JSON via stdin──▶ stripgauge statusline
-                                      │ atomic write
-                                      ▼
-                     ~/Library/Application Support/stripgauge/state.json
-                                      │ polled every 2s
-                                      ▼
-                              StripGauge.app
-                                      │ DFRFoundation, via dlsym
-                                      ▼
-                             Control Strip on the Touch Bar
+![data flow from Claude Code to the Control Strip](docs/dataflow.png)
+
+```text
+Claude Code --via stdin-> stripgauge statusline --atomic write-> ~/Library/Application Support/stripgauge/state.json --polled every 2s-> StripGauge.app --DFRFoundation via dlsym-> Control Strip
 ```
 
 One binary, two modes. `stripgauge statusline` is what Claude Code invokes on every update; the
