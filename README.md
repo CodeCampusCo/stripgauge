@@ -49,11 +49,14 @@ Requires a Touch Bar Mac and Xcode's Swift toolchain.
 
 ```sh
 ./build.sh
-open StripGauge.app
+mv StripGauge.app /Applications/
+open /Applications/StripGauge.app
 ```
 
-`build.sh` runs `swift build -c release`, assembles `StripGauge.app` by hand — SwiftPM cannot emit
-app bundles, and the Touch Bar service ignores a bare binary — and ad-hoc signs it.
+`build.sh` runs `swift build -c release`, assembles `StripGauge.app` in the repository root by hand
+— SwiftPM cannot emit app bundles, and the Touch Bar service ignores a bare binary — and ad-hoc
+signs it. Move it out of the repository: a rebuild overwrites it in place, and the paths below have
+to keep pointing at wherever it actually lives.
 
 Then point Claude Code at the same binary, in `~/.claude/settings.json`:
 
@@ -61,7 +64,7 @@ Then point Claude Code at the same binary, in `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "/absolute/path/to/StripGauge.app/Contents/MacOS/stripgauge statusline",
+    "command": "/Applications/StripGauge.app/Contents/MacOS/stripgauge statusline",
     "refreshInterval": 10
   }
 }
@@ -74,7 +77,9 @@ like a closed one. Keep it below the 30-second staleness window.
 The status line itself prints `5h 11% · 7d 79% · ctx 34%`, so the terminal shows the same numbers
 as the Touch Bar plus context usage.
 
-To start the app at login, add `StripGauge.app` under System Settings → General → Login Items.
+To start it at login, open System Settings → General → Login Items, add an item under "Open at
+Login", and pick the app you just moved. It has no Dock icon and no window, so nothing will appear
+when it launches — the gauge showing up in the Control Strip is the only sign it is running.
 
 ```sh
 swift test    # covers parsing, merging, formatting, thresholds, staleness
