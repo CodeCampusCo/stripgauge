@@ -49,7 +49,9 @@ Requires a Touch Bar Mac and Xcode's Swift toolchain.
 
 ```sh
 ./build.sh
-mv -f StripGauge.app /Applications/
+killall stripgauge 2>/dev/null   # quits the running copy; nothing to quit on a first install
+rm -rf /Applications/StripGauge.app
+mv StripGauge.app /Applications/
 open /Applications/StripGauge.app
 ```
 
@@ -57,6 +59,12 @@ open /Applications/StripGauge.app
 — SwiftPM cannot emit app bundles, and the Touch Bar service ignores a bare binary — and ad-hoc
 signs it. Move it out of the repository: a rebuild overwrites it in place, and the paths below have
 to keep pointing at wherever it actually lives.
+
+The `rm -rf` is not decoration. An app bundle is a directory, and `mv` refuses to replace a
+directory that is not empty — with or without `-f`, which only suppresses the prompt for an
+unwritable destination. Upgrading without it fails with `Directory not empty`. And because the app
+has no Dock icon, no window and no menu, `killall` is the only way to quit the copy already
+running.
 
 Then point Claude Code at the same binary, in `~/.claude/settings.json`:
 
