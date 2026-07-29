@@ -104,6 +104,13 @@ wide enough to need more space is handed a slot the Control Strip then declines 
 **Rate limits are not always present.** They appear only for Claude.ai subscribers, and only
 after a session's first API response. Until then each row shows `—`.
 
+**There are no prebuilt downloads, on purpose.** A release would carry Apple's quarantine flag, and
+an ad-hoc signed app is blocked when it arrives that way — not only in Finder but when Claude Code
+runs the status line command, which is a confusing way to fail. Since macOS Sequoia the
+Control-click override is gone, so clearing it means a trip through System Settings → Privacy &
+Security → Open Anyway. Avoiding that entirely needs a Developer ID and notarization, which needs a
+paid Apple Developer account. For a tool this size, building it yourself is the smaller imposition.
+
 **The hardware is end-of-life.** The Touch Bar shipped on MacBook Pros from 2016 to 2020 and
 Apple has not made one since.
 
