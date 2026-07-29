@@ -49,7 +49,7 @@ Requires a Touch Bar Mac and Xcode's Swift toolchain.
 
 ```sh
 ./build.sh
-mv StripGauge.app /Applications/
+mv -f StripGauge.app /Applications/
 open /Applications/StripGauge.app
 ```
 
