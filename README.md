@@ -1,6 +1,11 @@
 # StripGauge
 
-Claude Code subscription quota on the MacBook Pro Touch Bar.
+If your MacBook Pro has a Touch Bar, StripGauge puts your Claude Code 5-hour and weekly quota in
+the Control Strip, beside brightness and volume.
+
+Two things to know before reading further. It takes over your Claude Code `statusLine` command, so
+if you already run one of your own, you would be giving it up. And there are no downloads — you
+build it yourself, which needs a Touch Bar Mac and Xcode's Swift toolchain.
 
 ![the gauge in the Control Strip](docs/touchbar.png)
 
@@ -118,9 +123,11 @@ runs the status line command, which is a confusing way to fail. Since macOS Sequ
 Control-click override is gone, so clearing it means a trip through System Settings → Privacy &
 Security → Open Anyway. Avoiding that entirely needs a Developer ID and notarization, which needs a
 paid Apple Developer account. For a tool this size, building it yourself is the smaller imposition.
+Homebrew does not route around this — see [docs/specs/2026-08-05-distribution.md](docs/specs/2026-08-05-distribution.md).
 
-**The hardware is end-of-life.** The Touch Bar shipped on MacBook Pros from 2016 to 2020 and
-Apple has not made one since.
+**The hardware is discontinued.** The Touch Bar ran for seven years — from the 2016 MacBook Pro
+through the 13-inch M2, which Apple stopped selling on 30 October 2023. Nothing since has one, so
+the installed base only shrinks. It is younger than "a 2016 machine" suggests, but it is finite.
 
 ## Licence
 
